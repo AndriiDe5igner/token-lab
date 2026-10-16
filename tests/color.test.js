@@ -10,6 +10,7 @@ import {
   contrastRatio,
   contrastLevel,
   pickReadable,
+  toOklchString,
 } from '../public/color.js';
 
 const HEX = /^#[0-9a-f]{6}$/;
@@ -73,11 +74,33 @@ test('вхідний колір зберігається точно на кро�
   }
 });
 
-test('якір: #4F46E5 -> 600, #FACC15 -> 200, #fff -> 50, #000 -> 950', () => {
-  assert.equal(brandScale('#4F46E5').anchor, 600);
+test('якір: #4F46E5 -> 700, #FACC15 -> 200, #fff -> 50, #000 -> 950', () => {
+  assert.equal(brandScale('#4F46E5').anchor, 700);
   assert.equal(brandScale('#FACC15').anchor, 200);
   assert.equal(brandScale('#ffffff').anchor, 50);
   assert.equal(brandScale('#000000').anchor, 950);
+});
+
+test('шкала #4F46E5 збігається з макетом у design/ (±2 на канал)', () => {
+  const design = {
+    brand: ['#f4f6ff', '#e9ecff', '#d4daff', '#b7c2ff', '#939fff', '#7780ff', '#605eff', '#4f46e5', '#3b2abc', '#291392', '#170063'],
+    neutral: ['#f6f7f8', '#ecedef', '#d9dadf', '#c1c2c8', '#a1a3aa', '#878991', '#707179', '#5a5c63', '#45464c', '#313238', '#1e1f23'],
+  };
+  const ours = { brand: brandScale('#4F46E5').scale, neutral: neutralScale('#4F46E5') };
+  const channels = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  for (const kind of ['brand', 'neutral']) {
+    STEPS.forEach((s, i) => {
+      const a = channels(ours[kind][s]);
+      const b = channels(design[kind][i]);
+      const diff = Math.max(...a.map((v, j) => Math.abs(v - b[j])));
+      assert.ok(diff <= 2, `${kind}-${s}: ${ours[kind][s]} vs ${design[kind][i]}`);
+    });
+  }
+});
+
+test('toOklchString', () => {
+  assert.equal(toOklchString('#4F46E5'), 'oklch(51.1% 0.230 277.0)');
+  assert.equal(toOklchString('#ffffff'), 'oklch(100.0% 0.000 0.0)');
 });
 
 test('neutral майже сірий: розкид каналів RGB невеликий', () => {
