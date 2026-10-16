@@ -15,7 +15,7 @@ const PRESETS = [
 
 const HEX_ERROR = 'Невалідний hex. Потрібно 3 або 6 символів 0-9 і A-F, наприклад 4F46E5.';
 
-const state = { palette: null };
+const state = { palette: null, sharedHex: null };
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -197,6 +197,57 @@ function apply(hex) {
   if (state.palette && state.palette.input === normalized) return;
   state.palette = buildPalette(normalized);
   render();
+  // Колір змінився - посилання /p/:id вже не про цю палітру.
+  if (state.sharedHex && state.sharedHex !== normalized && location.pathname.startsWith('/p/')) {
+    history.replaceState(null, '', '/');
+    state.sharedHex = null;
+  }
+}
+
+// ---------- поділитися ----------
+
+const SHARED_PATH = /^\/p\/([a-z0-9]{6})\/?$/;
+
+async function share() {
+  const hex = state.palette.input;
+  els.shareBtn.disabled = true;
+  els.shareBtn.setAttribute('aria-busy', 'true');
+  try {
+    const res = await fetch('/api/palettes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hex }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.url) throw new Error(data.error || `HTTP ${res.status}`);
+    state.sharedHex = hex;
+    history.replaceState(null, '', new URL(data.url).pathname);
+    await copy(data.url, 'Посилання скопійовано');
+  } catch {
+    toast('Не вдалося зберегти палітру. Спробуй ще раз.');
+  } finally {
+    els.shareBtn.disabled = false;
+    els.shareBtn.removeAttribute('aria-busy');
+  }
+}
+
+/** Якщо відкрито /p/:id - підтягуємо збережений колір. Повертає true, якщо вдалося. */
+async function loadShared() {
+  const match = location.pathname.match(SHARED_PATH);
+  if (!match) return false;
+  try {
+    const res = await fetch(`/api/palettes/${match[1]}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { hex } = await res.json();
+    if (!normalizeHex(hex)) throw new Error('bad hex');
+    state.sharedHex = normalizeHex(hex);
+    apply(hex);
+    return true;
+  } catch {
+    history.replaceState(null, '', '/');
+    toast('Палітру за цим посиланням не знайдено');
+    return false;
+  }
 }
 
 // ---------- поле hex ----------
@@ -243,7 +294,7 @@ function toast(message) {
   toastTimer = setTimeout(() => els.toast.classList.remove('is-visible'), 1600);
 }
 
-async function copy(text) {
+async function copy(text, message = 'Скопійовано') {
   try {
     await navigator.clipboard.writeText(text);
   } catch {
@@ -257,7 +308,7 @@ async function copy(text) {
     document.execCommand('copy');
     area.remove();
   }
-  toast('Скопійовано');
+  toast(message);
 }
 
 // ---------- старт ----------
@@ -294,9 +345,12 @@ function init() {
   });
 
   els.copyBtn.addEventListener('click', () => copy(els.exportCode.textContent));
-  els.shareBtn.addEventListener('click', () => toast('Поділитися з’явиться в наступному кроці'));
+  els.shareBtn.addEventListener('click', share);
 
-  apply(DEFAULT_HEX);
+  // На /p/:id спершу чекаємо збережений колір, щоб не блимнути дефолтним індиго.
+  const shared = SHARED_PATH.test(location.pathname);
+  if (!shared) apply(DEFAULT_HEX);
+  else loadShared().then((ok) => ok || apply(DEFAULT_HEX));
 }
 
 init();

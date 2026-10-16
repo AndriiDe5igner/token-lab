@@ -91,6 +91,11 @@ input {
   color: var(--on-accent);
 }
 
+.btn:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
 .btn-outline {
   height: 32px;
   padding: 0 12px;
