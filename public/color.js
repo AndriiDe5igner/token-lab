@@ -4,15 +4,17 @@
 
 export const STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
 
+// Криві взято з макета в design/ (виміряно в OKLCH).
 // Цільова світлість OKLCH для кожного кроку (50 - найсвітліший).
-const LIGHTNESS = [0.97, 0.935, 0.87, 0.79, 0.7, 0.62, 0.54, 0.47, 0.4, 0.34, 0.26];
+const LIGHTNESS = [0.976, 0.946, 0.889, 0.815, 0.716, 0.631, 0.55, 0.475, 0.395, 0.319, 0.24];
 
 // Відносна хрома кроку: біля країв шкали колір приглушується.
-const CHROMA_CURVE = [0.12, 0.25, 0.45, 0.7, 0.9, 1, 1, 0.92, 0.8, 0.65, 0.5];
+const CHROMA_CURVE = [0.05, 0.11, 0.22, 0.38, 0.6, 0.8, 1, 1, 0.93, 0.81, 0.65];
 
-// Хрома neutral: легкий тон бренду, не більше NEUTRAL_MAX_CHROMA.
+// Хрома neutral: легкий тон бренду, не більше NEUTRAL_MAX_CHROMA, тихіше на краях.
 const NEUTRAL_CHROMA_RATIO = 0.12;
 const NEUTRAL_MAX_CHROMA = 0.012;
+const NEUTRAL_CHROMA_CURVE = [0.15, 0.25, 0.55, 0.7, 0.85, 1, 1, 0.95, 0.9, 0.9, 0.7];
 
 const ACHROMATIC = 1e-4;
 
@@ -168,7 +170,13 @@ export function neutralScale(input) {
   const hex = requireHex(input);
   const { C, h } = hexToOklch(hex);
   const Cn = Math.min(C * NEUTRAL_CHROMA_RATIO, NEUTRAL_MAX_CHROMA);
-  return toScaleObject(LIGHTNESS.map((L) => oklchToHex({ L, C: Cn, h })));
+  return toScaleObject(LIGHTNESS.map((L, i) => oklchToHex({ L, C: Cn * NEUTRAL_CHROMA_CURVE[i], h })));
+}
+
+/** Рядок CSS для hex: 'oklch(51.1% 0.230 277.0)'. */
+export function toOklchString(input) {
+  const { L, C, h } = hexToOklch(requireHex(input));
+  return `oklch(${(L * 100).toFixed(1)}% ${C.toFixed(3)} ${h.toFixed(1)})`;
 }
 
 // ---------- контраст WCAG 2.x ----------
