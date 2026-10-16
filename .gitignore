@@ -1,1 +1,11 @@
+# OS
 .DS_Store
+
+# Node / wrangler
+node_modules/
+.wrangler/
+
+# Секрети (локальні змінні Cloudflare)
+.dev.vars
+.env
+.env.*
