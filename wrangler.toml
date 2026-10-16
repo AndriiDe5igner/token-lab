@@ -5,6 +5,5 @@ compatibility_date = "2025-09-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "token-lab"
-# Плейсхолдер для локальної розробки. Перед деплоєм замінити на id з `wrangler d1 create token-lab`
-# (id бази не секрет, токени Cloudflare - секрет і в репо не потрапляють).
-database_id = "00000000-0000-0000-0000-000000000000"
+# id бази не секрет, токени Cloudflare - секрет і в репо не потрапляють.
+database_id = "510d8367-f8a0-4fbc-9a43-e81d7d896a12"
